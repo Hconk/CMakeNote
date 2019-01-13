@@ -79,7 +79,7 @@ target_link_libraries( useStaticLib add )
 ```
 > 文档链接:  
 [include_directories](https://cmake.org/cmake/help/v3.13/command/include_directories.html)  
-[include_directories](https://cmake.org/cmake/help/v3.13/command/link_directories.html) 
+[include_directories](https://cmake.org/cmake/help/v3.13/command/link_directories.html)   
 [target_link_libraries](https://cmake.org/cmake/help/v3.13/command/target_link_libraries.html)  
 
 ## 链接动态库
@@ -97,7 +97,7 @@ add_executable( useDynamicLib useDynamicLib.cpp )
 target_link_libraries( useDynamicLib add )
 ```
 
-## 安装库文件及对应头文件
+## 安装静态库文件及对应头文件
 ``` CMake
 cmake_minimum_required(VERSION 3.10)
 
@@ -112,11 +112,89 @@ add_library( add add.cpp )
 # install(SCRIPT <file> [...])
 # install(CODE <code> [...])
 # install(EXPORT <export-name> DESTINATION <dir> [...])
-
+# RUNTIME: 可执行文件
+# ARCHIVE: 静态库
+# LIBRARY: 动态库
 install(TARGETS add 
     ARCHIVE DESTINATION /usr/local/lib/
     )
 install(FILES add.hpp DESTINATION /usr/local/include )
 ```
 > 文档链接  
-[install](https://cmake.org/cmake/help/v3.13/command/install.html)
+[install](https://cmake.org/cmake/help/v3.13/command/install.html)  
+
+## 安装动态库文件及对应头文件
+``` CMake
+cmake_minimum_required(VERSION 3.10)
+
+project( add )
+
+add_library( add SHARED add.cpp )
+
+# 内容基本同上
+# LIBRARY: 该参数指定为动态库文件
+install(TARGETS add 
+    LIBRARY DESTINATION /usr/local/lib 
+    )
+install(FILES add.hpp DESTINATION /usr/local/include )
+```
+
+## 模块的使用及自定义模块
+使用 find_package
+``` CMake
+cmake_minimum_required(VERSION 3.10)
+
+project( main )
+
+# 设置 CMake 查找module的文件路径
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
+
+# 查找 ADD 库
+# find_package(<PackageName> [version] [EXACT] [QUIET] [MODULE]
+#             [REQUIRED] [[COMPONENTS] [components...]]
+#             [OPTIONAL_COMPONENTS components...]
+#             [NO_POLICY_SCOPE])
+find_package(ADD)
+
+# 在 FindADD.cmake 文件中会定义 ADD_FOUND 变量用于判断是否查找成功
+# 在查找成功后会添加 ${ADD_INCLUDE_DIR} 头文件查找路径， 和 ${ADD_LIBRARY} 库文件名两个变量
+if(ADD_FOUND)
+    include_directories(${ADD_INCLUDE_DIR})
+else(ADD_FOUND)
+    message(FATAL_ERROR "ADD library not fount")
+endif(ADD_FOUND)
+
+add_executable( main main.cpp )
+
+target_link_libraries(main ${ADD_LIBRARY} )
+```
+> 文档链接  
+[find_package](https://cmake.org/cmake/help/v3.13/command/find_package.html)
+
+## Find 模块编写
+``` CMake
+# 查找文件名，及查找路径路径，查找成功会将路径设置到 ADD_INCLUDE_DIR 变量中
+# find_path (<VAR> name1 [path1 path2 ...])
+find_path(ADD_INCLUDE_DIR add.hpp /usr/local/include /usr/include )
+
+# 查找库文件名，及查找路径，查找成功会将库文件路径设置到 ADD_LIBRARY 变量中
+# find_library (<VAR> name1 [path1 path2 ...])
+find_library(ADD_LIBRARY NAMES add PATH /usr/local/lib /usr/lib/ )
+
+# 如果查找成功设置 ADD_FOUND 变量为 true
+if(ADD_INCLUDE_DIR AND ADD_LIBRARY)
+    set(ADD_FOUND true)
+endif(ADD_INCLUDE_DIR AND ADD_LIBRARY
+
+if(ADD_FOUND)
+    if(NOT ADD_FIND_QUIETLY)
+    message(STATUS "Found add: ${ADD_LIBRARY}")
+    endif(NOT ADD_FIND_QUIETLY)
+else(ADD_FOUND)
+    if(ADD_FIND_REQUIRED)
+    message(FATAL_ERROR "Could not find hello library")
+    endif(ADD_FIND_REQUIRED)
+endif(ADD_FOUND)
+```
+> 文档链接  
+[find_library](https://cmake.org/cmake/help/v3.13/command/find_library.html)
